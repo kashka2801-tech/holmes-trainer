@@ -45,12 +45,12 @@ const EMO=["🎩","🔍","🕯️","🗝️","☂️","🎻","📜","🕰️","�
 const S=JSON.parse(localStorage.getItem("holmes")||'{"score":0,"streak":0,"last":"","done":{},"daily":{}}');
 function save(){localStorage.setItem("holmes",JSON.stringify(S));upd()}
 function upd(){document.getElementById("score").textContent=S.score;document.getElementById("streak").textContent=S.streak}
-const today=new Date().toISOString().slice(0,10);
+const ld=d=>{const z=new Date(d-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};const today=ld(new Date());
 function seed(){let h=0;for(const c of today)h=h*31+c.charCodeAt(0)|0;return Math.abs(h)}
 function rnd(n){return Math.floor(Math.random()*n)}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function markDaily(k){S.daily[today]=S.daily[today]||{};S.daily[today][k]=1;
- if(Object.keys(S.daily[today]).length===4&&S.last!==today){const y=new Date(Date.now()-864e5).toISOString().slice(0,10);S.streak=S.last===y?S.streak+1:1;S.last=today}save()}
+ if(Object.keys(S.daily[today]).length===4&&S.last!==today){const y=ld(new Date(Date.now()-864e5));S.streak=S.last===y?S.streak+1:1;S.last=today}save()}
 const V=document.getElementById("view");
 // ===== ВОПРОС С ВАРИАНТАМИ =====
 function quiz(box,opts,ans,expl,key,onDone){
