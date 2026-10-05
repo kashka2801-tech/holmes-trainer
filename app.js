@@ -53,7 +53,7 @@ const DAY=Math.floor(Date.parse(today)/864e5);function pick(arr,off){return arr[
 function rnd(n){return Math.floor(Math.random()*n)}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function markDaily(k){S.daily[today]=S.daily[today]||{};S.daily[today][k]=1;
- if(Object.keys(S.daily[today]).length===4&&S.last!==today){const y=ld(new Date(Date.now()-864e5));S.streak=S.last===y?S.streak+1:1;S.last=today}save()}
+ if(Object.keys(S.daily[today]).length===5&&S.last!==today){const y=ld(new Date(Date.now()-864e5));S.streak=S.last===y?S.streak+1:1;S.last=today}save()}
 const V=document.getElementById("view");
 // ===== ВОПРОС С ВАРИАНТАМИ =====
 function quiz(box,opts,ans,expl,key,onDone){
@@ -90,29 +90,45 @@ function obsGame(target,key,cb){
     const r2=document.createElement("p");r2.className="done";r2.textContent=`Итог: ${right} из 3. `+(right===3?"Наблюдательность уровня Холмса.":"Тренируйся — описывай увиденное словами, это помогает памяти.");
     c.querySelectorAll(".grid div").forEach((d,i)=>d.textContent=cells[i]);c.appendChild(r2);cb&&cb()}})})}
 }
-function caseCard(cs,idx){const c=document.createElement("div");c.className="card";
+function caseCard(cs,idx,cb){const c=document.createElement("div");c.className="card";
  c.innerHTML=`<h3>🗂️ ${cs.t}</h3><p>${cs.story}</p><h3>${cs.q}</h3>`;
- quiz(c,cs.o,cs.a,"Посмотри разбор цепочки ниже.","case"+idx,()=>{
+ quiz(c,cs.o,cs.a,"Посмотри разбор цепочки ниже.","case"+idx,()=>{cb&&cb();
   const ul=document.createElement("ol");ul.className="chain";c.appendChild(ul);
   const nb=document.createElement("button");nb.className="btn";nb.textContent="Показать следующее звено ▶";c.appendChild(nb);let k=0;
   nb.onclick=()=>{const li=document.createElement("li");li.textContent=cs.chain[k++];ul.appendChild(li);if(k>=cs.chain.length)nb.remove()};nb.click()});
  return c}
+function board(b,i){const c=document.createElement("div");c.className="card board";
+ c.innerHTML=`<h3>📌 ${b.t}</h3><p>${b.intro}</p>`;
+ if(b.cipher){const A="АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+  c.insertAdjacentHTML("beforeend",`<p class="cipher">${b.cipher}</p><label>Сдвиг назад: <b class="k">0</b></label><input type="range" min="0" max="32" value="0" style="width:100%"><p class="cipher out">${b.cipher}</p><p class="muted">Подсказка: самая частая буква в русском языке — О.</p>`);
+  const r=c.querySelector("input"),o=c.querySelector(".out"),k=c.querySelector(".k");
+  r.oninput=()=>{const n=+r.value;k.textContent=n;const t=[...b.cipher].map(ch=>A.includes(ch)?A[(A.indexOf(ch)-n+33)%33]:ch).join("");o.textContent=t;
+   if(t===b.answer&&!c.dataset.ok){c.dataset.ok=1;if(!S.done["board"+i]){S.score+=15;S.done["board"+i]=1;save()}o.insertAdjacentHTML("afterend",'<div class="fb"><b>✔ Любопытненько!</b> Сдвиг '+n+'. Метод: перебор гипотез, пока не появится смысл.</div>')}};return c}
+ const cl=document.createElement("div");b.clues.forEach((t,j)=>{const x=document.createElement("button");x.className="opt clue";x.textContent="🗂️ Улика "+(j+1)+" — нажми, чтобы осмотреть";x.onclick=()=>{x.textContent=t;x.classList.add("seen")};cl.appendChild(x)});c.appendChild(cl);
+ c.insertAdjacentHTML("beforeend",'<h3>Подозреваемые</h3><p class="muted">Нажми на карточку, чтобы вычеркнуть. Когда останется один — нажми «Обвинить».</p>');
+ const g=document.createElement("div");g.className="sus";b.sus.forEach((s,j)=>{const x=document.createElement("div");x.className="suscard";x.innerHTML=`<b>${s[0]}</b><br><span class="muted">${s[1]}</span>`;x.onclick=()=>x.classList.toggle("out");x.dataset.j=j;g.appendChild(x)});c.appendChild(g);
+ const btn=document.createElement("button");btn.className="btn";btn.textContent="Обвинить";c.appendChild(btn);
+ btn.onclick=()=>{const left=[...g.children].filter(x=>!x.classList.contains("out"));const f=c.querySelector(".fb")||c.appendChild(Object.assign(document.createElement("div"),{className:"fb"}));
+  if(left.length!==1){f.innerHTML="Вычеркни всех, кроме одного подозреваемого.";return}
+  if(+left[0].dataset.j===b.a){if(!S.done["board"+i]){S.score+=15;S.done["board"+i]=1;save()}f.innerHTML="<b>✔ Дело раскрыто!</b> "+b.e}else f.innerHTML="<b>✘ Улики не сходятся.</b> Перечитай улики и проверь, кто им не противоречит."};
+ return c}
 const R={
 daily(){const d=S.daily[today]||{};
- V.innerHTML=`<div class="card"><h2>Задания на ${new Date().toLocaleDateString("ru-RU")}</h2><p>Выполни 4 упражнения, чтобы продлить серию. Выполнено: <b>${Object.keys(d).length}/4</b></p></div>`;
+ V.innerHTML=`<div class="card"><h2>Задания на ${new Date().toLocaleDateString("ru-RU")}</h2><p>Выполни 5 упражнений, чтобы продлить серию. Выполнено: <b>${Object.keys(d).length}/5</b></p></div>`;
  const w=document.createElement("div");V.appendChild(w);
  const h=t=>{const e=document.createElement("h2");e.textContent=t;w.appendChild(e)};
  h("1. Наблюдательность");obsGame(w,"dobs",()=>markDaily("obs"));
  h("2. Несостыковка");w.appendChild(flawCard(pick(FLAWS,0),0,"d_flaw"+today,()=>markDaily("flaw")));
  h("3. Метод Белла");w.appendChild(bellCard(pick(BELL,5),0,"d_bell"+today,()=>markDaily("bell")));
- h("4. Аналогия");w.appendChild(analCard(pick(ANAL,11),0,"d_anal"+today,()=>markDaily("anal")));},
+ h("4. Аналогия");w.appendChild(analCard(pick(ANAL,11),0,"d_anal"+today,()=>markDaily("anal")));
+ h("5. Дело дня от Вари — «Любопытненько!»");w.appendChild(caseCard(pick(VARYA,3),"d"+today,()=>markDaily("varya")));},
 obs(){V.innerHTML=`<div class="card"><h2>Наблюдательность</h2><p>Чем больше очков, тем больше предметов в комнате.</p><button class="btn" id="again">Новая комната</button></div><div id="og"></div>`;
  const go=()=>{const og=document.getElementById("og");og.innerHTML="";obsGame(og,"obs")};document.getElementById("again").onclick=go;go()},
 flaw(){V.innerHTML=`<div class="card"><h2>Поиск несостыковок</h2><p>Ложь чаще всего выдают мелкие детали, которые не согласуются друг с другом. Проверяй каждое утверждение: могло ли это быть одновременно с остальным?</p></div>`;FLAWS.forEach((f,i)=>V.appendChild(flawCard(f,i)))},
 bell(){V.innerHTML=`<div class="card"><h2>Метод доктора Белла</h2><p>Джозеф Белл — хирург из Эдинбурга и учитель Конан Дойла. Он с первого взгляда угадывал профессию и прошлое пациента. Его правило: <b>смотри → замечай мелочи → связывай с известными фактами → делай вывод → проверяй</b>.</p></div>`;BELL.forEach((b,i)=>V.appendChild(bellCard(b,i)))},
 anal(){V.innerHTML=`<div class="card"><h2>Аналогии</h2><p>Формула «A : B = C : ?». Сначала назови отношение в первой паре одним словом (причина, след, инструмент, противник…), затем ищи такое же.</p></div>`;ANAL.forEach((a,i)=>V.appendChild(analCard(a,i)))},
 cases(){V.innerHTML=`<div class="card"><h2>Мини-кейсы</h2><p>Сначала выбери версию, затем открывай цепочку «причина → следствие» по одному звену. Попробуй предугадать каждое следующее звено.</p></div>`;CASES.forEach((c,i)=>V.appendChild(caseCard(c,i)))},
-varya(){V.innerHTML=`<div class="card"><h2>Метод Вари Смородиной</h2><p>Варя из сериала «Любопытная Варвара» — юная сыщица из кружка «Юный следователь». Она цитирует Шерлока Холмса, играет в шахматы, разбирается в криминалистике и учится у дедушки-следователя и бабушки-судмедэксперта. Её фраза: «Любопытненько!»</p><ol class="chain"><li><b>«Любопытненько!»</b> — замечай странное, а не отмахивайся.</li><li><b>Сначала отбрось мистику.</b> Ведьмы и призраки не оставляют следов, а люди оставляют.</li><li><b>Криминалистика.</b> Следы, отпечатки, тени, пятна.</li><li><b>Сверяй слова с документами</b> — билетами, протоколами, фото.</li><li><b>Думай как шахматист</b> — ищи закономерность и предугадывай следующий ход.</li><li><b>Свой Ватсон.</b> Обсуждай версии с другом, как Варя с Васей.</li></ol><p class="muted">Задачи придуманы в духе сериала и по мотивам его тем. Это не пересказ того, как раскрыты настоящие серии.</p></div>`;VARYA.forEach((c,i)=>V.appendChild(caseCard(Object.assign({},c),'v'+i)))},
+varya(){V.innerHTML=`<div class="card"><h2>Метод Вари Смородиной</h2><p>Варя из сериала «Любопытная Варвара» — юная сыщица из кружка «Юный следователь». Она цитирует Шерлока Холмса, играет в шахматы, разбирается в криминалистике и учится у дедушки-следователя и бабушки-судмедэксперта. Её фраза: «Любопытненько!»</p><ol class="chain"><li><b>«Любопытненько!»</b> — замечай странное, а не отмахивайся.</li><li><b>Сначала отбрось мистику.</b> Ведьмы и призраки не оставляют следов, а люди оставляют.</li><li><b>Криминалистика.</b> Следы, отпечатки, тени, пятна.</li><li><b>Сверяй слова с документами</b> — билетами, протоколами, фото.</li><li><b>Думай как шахматист</b> — ищи закономерность и предугадывай следующий ход.</li><li><b>Свой Ватсон.</b> Обсуждай версии с другом, как Варя с Васей.</li></ol><p class="muted">Задачи придуманы в духе сериала и по мотивам его тем. Это не пересказ того, как раскрыты настоящие серии.</p></div>`;V.insertAdjacentHTML("beforeend",'<h2>Доска улик</h2>');BOARDS.forEach((b,i)=>V.appendChild(board(b,i)));V.insertAdjacentHTML("beforeend",'<h2>Дела Вари</h2>');VARYA.forEach((c,i)=>V.appendChild(caseCard(Object.assign({},c),'v'+i)))},
 about(){V.innerHTML=`<div class="card"><h2>Как думает Холмс</h2><ol class="chain">
 <li><b>Наблюдай, а не смотри.</b> Мысленно описывай детали: цвет, износ, следы, положение предметов.</li>
 <li><b>Не теоретизируй без данных.</b> «Грубая ошибка — строить теории, не имея фактов».</li>
