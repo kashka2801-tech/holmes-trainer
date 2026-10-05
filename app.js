@@ -40,13 +40,16 @@ const CASES=[
 {t:"Дело о болеющем классе",story:"В одном классе за месяц заболели головными болями почти все ученики, в соседних классах — нет. В этом классе недавно сделали ремонт и поставили новые пластиковые окна, которые не открываются, а кабинет всегда закрыт после уроков.",q:"Вероятная причина?",o:["Эпидемия гриппа","Духота и испарения после ремонта без проветривания","Сложная программа","Плохой обед"],a:1,chain:["Только один класс → причина в самом кабинете, а не в школе.","Ремонт → краска и клей выделяют вещества.","Окна не открываются → углекислый газ и испарения накапливаются.","Головная боль — типичная реакция на духоту. Проверка: проветривание и замер CO₂."]},
 {t:"Дело о часах на вокзале",story:"Опоздавший пассажир говорит: «Я смотрел на часы — было ровно 9:00, а поезд уже ушёл, хотя по расписанию в 9:05». Его часы механические, он вчера прилетел из Москвы во Владивосток и ещё не переводил их.",q:"В чём дело?",o:["Поезд ушёл раньше","Часы показывали московское время","Часы сломаны","Он перепутал вокзал"],a:1,chain:["Владивосток опережает Москву на 7 часов.","Часы не переводились → показывают московское время.","«9:00» по Москве — это 16:00 во Владивостоке; утренний поезд давно ушёл.","Скрытая связь: проблема не в поезде, а в системе отсчёта."]}
 ];
+// shuffle options for new items
+function mix(it){const idx=it.o.map((_,i)=>i),p=idx.sort(()=>Math.random()-.5);return Object.assign({},it,{o:p.map(i=>it.o[i]),a:p.indexOf(it.a)})}
+FLAWS.push(...F2);BELL.push(...B2.map(mix));ANAL.push(...A2.map(mix));CASES.push(...C2.map(mix));
 const EMO=["🎩","🔍","🕯️","🗝️","☂️","🎻","📜","🕰️","🚂","🐕","🍵","🧪","✉️","🔫","📚","🌹","👞","🧤","💼","🪶"];
 // ===== СОСТОЯНИЕ =====
 const S=JSON.parse(localStorage.getItem("holmes")||'{"score":0,"streak":0,"last":"","done":{},"daily":{}}');
 function save(){localStorage.setItem("holmes",JSON.stringify(S));upd()}
 function upd(){document.getElementById("score").textContent=S.score;document.getElementById("streak").textContent=S.streak}
 const ld=d=>{const z=new Date(d-d.getTimezoneOffset()*6e4);return z.toISOString().slice(0,10)};const today=ld(new Date());
-function seed(){let h=0;for(const c of today)h=h*31+c.charCodeAt(0)|0;return Math.abs(h)}
+const DAY=Math.floor(Date.parse(today)/864e5);function pick(arr,off){return arr[(DAY+off)%arr.length]}
 function rnd(n){return Math.floor(Math.random()*n)}
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
 function markDaily(k){S.daily[today]=S.daily[today]||{};S.daily[today][k]=1;
@@ -95,14 +98,14 @@ function caseCard(cs,idx){const c=document.createElement("div");c.className="car
   nb.onclick=()=>{const li=document.createElement("li");li.textContent=cs.chain[k++];ul.appendChild(li);if(k>=cs.chain.length)nb.remove()};nb.click()});
  return c}
 const R={
-daily(){const s=seed(),d=S.daily[today]||{};
+daily(){const d=S.daily[today]||{};
  V.innerHTML=`<div class="card"><h2>Задания на ${new Date().toLocaleDateString("ru-RU")}</h2><p>Выполни 4 упражнения, чтобы продлить серию. Выполнено: <b>${Object.keys(d).length}/4</b></p></div>`;
  const w=document.createElement("div");V.appendChild(w);
  const h=t=>{const e=document.createElement("h2");e.textContent=t;w.appendChild(e)};
  h("1. Наблюдательность");obsGame(w,"dobs",()=>markDaily("obs"));
- h("2. Несостыковка");w.appendChild(flawCard(FLAWS[s%FLAWS.length],0,"d_flaw"+today,()=>markDaily("flaw")));
- h("3. Метод Белла");w.appendChild(bellCard(BELL[(s>>3)%BELL.length],0,"d_bell"+today,()=>markDaily("bell")));
- h("4. Аналогия");w.appendChild(analCard(ANAL[(s>>5)%ANAL.length],0,"d_anal"+today,()=>markDaily("anal")));},
+ h("2. Несостыковка");w.appendChild(flawCard(pick(FLAWS,0),0,"d_flaw"+today,()=>markDaily("flaw")));
+ h("3. Метод Белла");w.appendChild(bellCard(pick(BELL,5),0,"d_bell"+today,()=>markDaily("bell")));
+ h("4. Аналогия");w.appendChild(analCard(pick(ANAL,11),0,"d_anal"+today,()=>markDaily("anal")));},
 obs(){V.innerHTML=`<div class="card"><h2>Наблюдательность</h2><p>Чем больше очков, тем больше предметов в комнате.</p><button class="btn" id="again">Новая комната</button></div><div id="og"></div>`;
  const go=()=>{const og=document.getElementById("og");og.innerHTML="";obsGame(og,"obs")};document.getElementById("again").onclick=go;go()},
 flaw(){V.innerHTML=`<div class="card"><h2>Поиск несостыковок</h2><p>Ложь чаще всего выдают мелкие детали, которые не согласуются друг с другом. Проверяй каждое утверждение: могло ли это быть одновременно с остальным?</p></div>`;FLAWS.forEach((f,i)=>V.appendChild(flawCard(f,i)))},
